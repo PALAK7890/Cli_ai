@@ -2,7 +2,7 @@
 Fixed-size text chunker implementation.
 """
 
-from typing import List
+from typing import Dict, List
 from knowledge.loaders.base import LoadedDocument
 from knowledge.chunkers.base import BaseChunker, DocumentChunk
 
@@ -25,53 +25,61 @@ class FixedSizeChunker(BaseChunker):
         if chunk_size <= 0:
             raise ValueError("chunk_size must be a positive integer")
         if chunk_overlap < 0:
-            raise ValueError("chunk_overlap must be a non-negative integer")
+            raise ValueError("chunk_overlap must be non-negative integer")
         if chunk_overlap >= chunk_size:
             raise ValueError("chunk_overlap must be less than chunk_size")
 
         chunks: List[DocumentChunk] = []
+        # Keep track of running chunk index per unique document_id to avoid ID collisions
+        running_indices: Dict[str, int] = {}
 
         for doc in docs:
             text = doc.text.strip()
             if not text:
                 continue
 
+            doc_id = doc.document_id
+            if doc_id not in running_indices:
+                running_indices[doc_id] = 0
+
             text_len = len(text)
             stride = chunk_size - chunk_overlap
-            chunk_index = 0
-            start = 0
 
             # If the text is shorter than chunk_size, output it directly
             if text_len <= chunk_size:
+                chunk_index = running_indices[doc_id]
                 chunks.append(
                     DocumentChunk(
-                        chunk_id=f"{doc.document_id}_{chunk_index}",
+                        chunk_id=f"{doc_id}_{chunk_index}",
                         text=text,
-                        document_id=doc.document_id,
+                        document_id=doc_id,
                         source_path=doc.source_path,
                         page_number=doc.page_number,
                         chunk_index=chunk_index,
                         metadata=doc.metadata.copy()
                     )
                 )
+                running_indices[doc_id] += 1
                 continue
 
+            start = 0
             while start < text_len:
                 end = min(start + chunk_size, text_len)
                 chunk_text = text[start:end]
 
+                chunk_index = running_indices[doc_id]
                 chunks.append(
                     DocumentChunk(
-                        chunk_id=f"{doc.document_id}_{chunk_index}",
+                        chunk_id=f"{doc_id}_{chunk_index}",
                         text=chunk_text,
-                        document_id=doc.document_id,
+                        document_id=doc_id,
                         source_path=doc.source_path,
                         page_number=doc.page_number,
                         chunk_index=chunk_index,
                         metadata=doc.metadata.copy()
                     )
                 )
-                chunk_index += 1
+                running_indices[doc_id] += 1
 
                 if end == text_len:
                     break
