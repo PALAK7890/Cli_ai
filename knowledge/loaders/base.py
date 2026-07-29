@@ -3,15 +3,25 @@ Base classes and schemas for document loading.
 """
 
 from abc import ABC, abstractmethod
+import hashlib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field
+
+
+def compute_document_id(path: Path) -> str:
+    """
+    Stable ID for a document, used to match chunks back to their source
+    during removal/rebuild even if paths are relative vs. absolute.
+    """
+    return hashlib.sha1(str(path.resolve()).encode("utf-8")).hexdigest()[:12]
 
 
 class LoadedDocument(BaseModel):
     """Represents a single segment or page of a loaded document."""
     text: str = Field(description="The raw text extracted from the document source")
     source_path: str = Field(description="The absolute or relative file path of the source document")
+    document_id: str = Field(description="A stable unique identifier for the document")
     page_number: Optional[int] = Field(default=None, description="1-indexed page number if applicable (e.g. for PDFs)")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Extensible metadata dictionary for additional fields")
 
