@@ -97,7 +97,7 @@ def add(path: str) -> None:
             )
             texts = [chunk.text for chunk in chunks]
 
-            embeddings = embedder.encode(texts)
+            embeddings = embedder.embed_documents(texts)
 
             total_chars = sum(len(doc.text) for doc in loaded_docs)
 
