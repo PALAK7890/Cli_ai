@@ -1,7 +1,3 @@
 """
-CLI interface module.
+CLI package.
 """
-
-from knowledge.cli.main import app
-
-__all__ = ["app"]
