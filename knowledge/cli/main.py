@@ -5,8 +5,14 @@ Main entrypoint for the KnowledgeOS CLI.
 import typer
 from rich.console import Console
 from pathlib import Path
+
 from knowledge.loaders.router import LoaderRouter
+from knowledge.chunkers.recursive import RecursiveChunker
+from knowledge.loaders.base import LoadedDocument
+
 router = LoaderRouter()
+chunker = RecursiveChunker()
+
 app = typer.Typer(
     name="knowledge",
     help="KnowledgeOS: A modular CLI-based Retrieval-Augmented Generation assistant.",
@@ -80,12 +86,20 @@ def add(path: str) -> None:
     for file in files:
         try:
             loader = router.get_loader(file)
-            text = loader.load(file)
+            loaded_docs = loader.load(file)
 
-            console.print(
-                f"[green]✓[/green] {file.name} "
-                f"({len(text):,} characters)"
+            chunks = chunker.chunk(
+                loaded_docs,
+                chunk_size=500,
+                chunk_overlap=100,
             )
+
+            total_chars = sum(len(doc.text) for doc in loaded_docs)
+
+            console.print(f"[green]✓[/green] {file.name}")
+            console.print(f"   Characters : {total_chars:,}")
+            console.print(f"   Pages       : {len(loaded_docs)}")
+            console.print(f"   Chunks      : {len(chunks)}")
 
         except Exception as e:
             console.print(
