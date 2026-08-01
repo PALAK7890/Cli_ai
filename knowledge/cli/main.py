@@ -9,9 +9,11 @@ from pathlib import Path
 from knowledge.loaders.router import LoaderRouter
 from knowledge.chunkers.recursive import RecursiveChunker
 from knowledge.loaders.base import LoadedDocument
+from knowledge.embeddings import SentenceTransformerEmbedding
 
 router = LoaderRouter()
 chunker = RecursiveChunker()
+embedder = SentenceTransformerEmbedding()
 
 app = typer.Typer(
     name="knowledge",
@@ -93,6 +95,9 @@ def add(path: str) -> None:
                 chunk_size=500,
                 chunk_overlap=100,
             )
+            texts = [chunk.text for chunk in chunks]
+
+            embeddings = embedder.encode(texts)
 
             total_chars = sum(len(doc.text) for doc in loaded_docs)
 
@@ -100,6 +105,9 @@ def add(path: str) -> None:
             console.print(f"   Characters : {total_chars:,}")
             console.print(f"   Pages       : {len(loaded_docs)}")
             console.print(f"   Chunks      : {len(chunks)}")
+            console.print(f"   Embeddings  : {len(embeddings)}")
+            if embeddings:
+                console.print(f"   Dimension   : {len(embeddings[0])}")
 
         except Exception as e:
             console.print(
