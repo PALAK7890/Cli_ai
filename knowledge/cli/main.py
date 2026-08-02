@@ -25,7 +25,6 @@ chunker = RecursiveChunker()
 embedder = SentenceTransformerEmbedding()
 llm = OllamaLLM()
 
-
 @app.callback()
 def callback() -> None:
     """KnowledgeOS CLI."""
