@@ -11,6 +11,7 @@ from knowledge.chunkers.recursive import RecursiveChunker
 from knowledge.embeddings import SentenceTransformerEmbedding
 from knowledge.loaders.router import LoaderRouter
 from knowledge.vectorstores.faiss_store import FAISSStore
+from knowledge.llms.ollama_llm import OllamaLLM
 
 app = typer.Typer(
     name="knowledge",
@@ -22,6 +23,7 @@ console = Console()
 router = LoaderRouter()
 chunker = RecursiveChunker()
 embedder = SentenceTransformerEmbedding()
+llm = OllamaLLM()
 
 
 @app.callback()
@@ -175,6 +177,50 @@ def search(query: str) -> None:
         console.print(chunk["text"])
         console.print("-" * 70)
 
+@app.command("ask")
+def ask(question: str) -> None:
+    """Ask a question about indexed documents."""
 
+    import json
+
+    vector_store = FAISSStore()
+    vector_store.load(".knowledge/index/faiss.index")
+
+    with open(".knowledge/index/chunks.json") as f:
+        chunks = json.load(f)
+
+    query_embedding = embedder.embed_query(question)
+
+    scores, indices = vector_store.search(query_embedding, top_k=5)
+
+    context = []
+
+    for idx in indices[0]:
+        if idx == -1:
+            continue
+
+        context.append(chunks[idx]["text"])
+
+    answer = llm.generate(
+        question,
+        "\n\n".join(context),
+    )
+
+    console.print("\n[bold green]Answer[/bold green]\n")
+    console.print(answer)
+
+    console.print("\n[bold cyan]Sources[/bold cyan]")
+
+    seen = set()
+
+    for idx in indices[0]:
+        if idx == -1:
+            continue
+
+        source = chunks[idx]["source_path"]
+
+        if source not in seen:
+            seen.add(source)
+            console.print(f"- {source}")
 if __name__ == "__main__":
     app()
