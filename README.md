@@ -2,7 +2,7 @@
 
 A modular Retrieval-Augmented Generation (RAG) framework that indexes local documents, performs hybrid retrieval using dense and sparse search, reranks retrieved passages with a Cross-Encoder, and answers questions using a local LLM through Ollama.
 
-KnowledgeOS is designed as a modular research-oriented codebase where each stage of the retrieval pipeline is independently replaceable and benchmarkable.
+RAGForge is designed as a modular research-oriented codebase where each stage of the retrieval pipeline is independently replaceable and benchmarkable.
 
 ---
 
