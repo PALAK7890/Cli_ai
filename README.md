@@ -1,4 +1,4 @@
-# KnowledgeOS
+# RAGForge
 
 A modular Retrieval-Augmented Generation (RAG) framework that indexes local documents, performs hybrid retrieval using dense and sparse search, reranks retrieved passages with a Cross-Encoder, and answers questions using a local LLM through Ollama.
 
