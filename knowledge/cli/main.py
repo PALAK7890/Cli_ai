@@ -141,7 +141,9 @@ def add(path: str) -> None:
             console.print(f"[red]✗ {file.name}[/red] - {e}")
 
     if not all_embeddings:
-        console.print("[red]No embeddings generated.[/red]")
+        console.print(
+        "[green]All documents are already indexed. No changes detected.[/green]"
+    )
         return
 
     vector_store.add(all_embeddings)
