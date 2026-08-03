@@ -125,6 +125,16 @@ def add(path: str) -> None:
     vector_store.add(all_embeddings)
     vector_store.save(".knowledge/index/faiss.index")
 
+    document_records = []
+
+    for file in files:
+        document_records.append(
+            {
+                "name": file.name,
+                "path": str(file.resolve()),
+            }
+    )
+
     chunk_records = []
 
     for chunk in all_chunks:
@@ -140,8 +150,13 @@ def add(path: str) -> None:
             }
         )
 
-    with open(".knowledge/index/chunks.json", "w") as f:
-        json.dump(chunk_records, f, indent=2)
+    index_data = {
+        "documents": document_records,
+        "chunks": chunk_records,
+    }
+
+    with open(".knowledge/index/chunks.json", "w", encoding="utf-8") as f:
+        json.dump(index_data, f, indent=2, ensure_ascii=False)
 
     console.print("[bold green]Index saved successfully.[/bold green]")
     console.print(f"Total Chunks     : {len(all_chunks)}")
@@ -156,7 +171,8 @@ def search(query: str) -> None:
     vector_store.load(".knowledge/index/faiss.index")
 
     with open(".knowledge/index/chunks.json", "r") as f:
-        chunks = json.load(f)
+        data = json.load(f)
+    chunks = data["chunks"]
 
     query_embedding = embedder.embed_query(query)
 
@@ -175,7 +191,45 @@ def search(query: str) -> None:
         console.print(f"[yellow]Source:[/yellow] {chunk['source_path']}")
         console.print(chunk["text"])
         console.print("-" * 70)
+@app.command("list")
+def list_documents() -> None:
+    """List indexed documents."""
 
+    index_file = Path(".knowledge/index/chunks.json")
+
+    if not index_file.exists():
+        console.print("[red]No index found.[/red]")
+        raise typer.Exit()
+
+    with open(index_file, "r") as f:
+        data = json.load(f)
+
+    documents = data["documents"]
+    chunks = data["chunks"]
+
+    console.print("\n[bold cyan]Indexed Documents[/bold cyan]\n")
+
+    total_chunks = 0
+
+    for i, doc in enumerate(documents, start=1):
+
+        chunk_count = sum(
+            1
+            for chunk in chunks
+            if Path(chunk["source_path"]).name == doc["name"]
+        )
+
+        total_chunks += chunk_count
+
+        console.print(f"{i}. {doc['name']}")
+        console.print(f"   Path   : {doc['path']}")
+        console.print(f"   Chunks : {chunk_count}")
+        console.print()
+
+    console.print(f"Total Documents : {len(documents)}")
+    console.print(f"Total Chunks    : {total_chunks}")
+
+    
 @app.command("ask")
 def ask(question: str) -> None:
     """Ask a question about indexed documents."""
@@ -186,7 +240,9 @@ def ask(question: str) -> None:
     vector_store.load(".knowledge/index/faiss.index")
 
     with open(".knowledge/index/chunks.json") as f:
-        chunks = json.load(f)
+        data = json.load(f)
+
+    chunks = data["chunks"]
 
     query_embedding = embedder.embed_query(question)
 
