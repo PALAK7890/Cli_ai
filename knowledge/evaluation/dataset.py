@@ -1,13 +1,14 @@
-"""
-Evaluation dataset.
-"""
-
-from dataclasses import dataclass
+from pathlib import Path
+import json
 
 
-@dataclass
-class EvaluationExample:
+class EvaluationDataset:
 
-    query: str
+    def __init__(self, path):
 
-    relevant_chunks: list[int]
+        self.path = Path(path)
+
+    def load(self):
+
+        with open(self.path, "r", encoding="utf-8") as f:
+            return json.load(f)
