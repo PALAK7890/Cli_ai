@@ -39,6 +39,16 @@ RAGForge is designed as a modular research-oriented codebase where each stage of
 
 ---
 
+## About
+
+RAGForge is an open-source, modular Retrieval-Augmented Generation (RAG) framework built to explore, benchmark, and improve document retrieval pipelines. It integrates semantic vector search (FAISS + SentenceTransformers), lexical retrieval (BM25), hybrid ranking, query expansion, Cross-Encoder reranking, and local LLM inference into a single extensible architecture.
+
+Rather than focusing solely on question answering, RAGForge emphasizes the engineering behind modern retrieval systems. Every stage of the pipeline is implemented as an independent module, enabling experimentation with retrieval strategies, performance benchmarking, and component replacement without modifying the rest of the system.
+
+The framework is intended for developers, students, and researchers who want to understand how production-inspired RAG pipelines are designed and evaluated.
+
+---
+
 ## Architecture
 
 ```
