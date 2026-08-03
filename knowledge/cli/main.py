@@ -8,15 +8,16 @@ import typer
 from rich.console import Console
 import os
 import yaml
+import time
 
 from knowledge.chunkers.recursive import RecursiveChunker
 from knowledge.embeddings import SentenceTransformerEmbedding
 from knowledge.loaders.router import LoaderRouter
 from knowledge.vectorstores.faiss_store import FAISSStore
 from knowledge.llms.ollama_llm import OllamaLLM
-from knowledge.retrievers import BM25Retriever
-
-            
+from knowledge.retrievers import BM25Retriever, HybridRetriever
+from knowledge.rerankers import CrossEncoderReranker
+from knowledge.query import QueryExpander
 
 app = typer.Typer(
     name="knowledge",
@@ -30,6 +31,8 @@ chunker = RecursiveChunker()
 embedder = SentenceTransformerEmbedding()
 llm = OllamaLLM()
 bm25 = BM25Retriever()
+reranker = CrossEncoderReranker()
+expander = QueryExpander()
 
 @app.callback()
 def callback() -> None:
@@ -170,34 +173,95 @@ def add(path: str) -> None:
     console.print(f"Total Chunks     : {len(all_chunks)}")
     console.print(f"Embedding Size   : {len(all_embeddings[0])}")
 
-
 @app.command("search")
 def search(query: str) -> None:
-    """Semantic search."""
+    """Hybrid search with CrossEncoder reranking."""
 
     vector_store = FAISSStore()
     vector_store.load(".knowledge/index/faiss.index")
 
     with open(".knowledge/index/chunks.json", "r") as f:
         data = json.load(f)
-    chunks = data["chunks"]
 
+    chunks = data["chunks"]
+    texts = [chunk["text"] for chunk in chunks]
+
+    bm25 = BM25Retriever()
+    bm25.build(texts)
+
+    expanded_query = expander.expand(query)
+
+    console.print(
+        f"[cyan]Expanded Query:[/cyan] {expanded_query}"
+    )
+#fiass
     query_embedding = embedder.embed_query(query)
 
-    scores, indices = vector_store.search(query_embedding, top_k=5)
+    scores, indices = vector_store.search(
+        query_embedding,
+        top_k=20,
+    )
 
-    console.print(f"\n[bold cyan]Query:[/bold cyan] {query}\n")
+    faiss_results = []
 
     for score, idx in zip(scores[0], indices[0]):
-
         if idx == -1:
             continue
 
-        chunk = chunks[idx]
+        faiss_results.append((idx, float(score)))
+    # BM25
+    bm25_results = bm25.search(
+        expanded_query,
+        top_k=20,
+    )
 
-        console.print(f"[green]Score:[/green] {score:.4f}")
-        console.print(f"[yellow]Source:[/yellow] {chunk['source_path']}")
+    # hybrid retrieval
+
+    hybrid = HybridRetriever()
+
+    results = hybrid.fuse(
+        faiss_results,
+        bm25_results,
+    )
+
+
+    # ce reranking
+
+    candidate_chunks = []
+
+    for idx, hybrid_score in results:
+
+        chunk = chunks[idx].copy()
+
+        chunk["hybrid_score"] = hybrid_score
+
+        candidate_chunks.append(chunk)
+
+    ranked = reranker.rerank(
+        query=query,
+        chunks=candidate_chunks,
+        top_k=5,
+    )
+
+    # display
+    console.print(f"\n[bold cyan]Query:[/bold cyan] {query}\n")
+
+    for i, chunk in enumerate(ranked, start=1):
+
+        console.print(f"[bold]{i}.[/bold] {Path(chunk['source_path']).name}")
+
+        console.print(
+            f"[green]Cross Score :[/green] "
+            f"{chunk['rerank_score']:.4f}"
+        )
+
+        console.print(
+            f"[blue]Hybrid Score:[/blue] "
+            f"{chunk['hybrid_score']:.4f}"
+        )
+
         console.print(chunk["text"])
+
         console.print("-" * 70)
 
 @app.command("list")
@@ -292,11 +356,11 @@ def stats() -> None:
     console.print(f"Index Size       : {index_size}")
     console.print(f"Chunk File Size  : {chunk_size}")
 
-@app.command("ask")
-def ask(question: str) -> None:
-    """Ask a question about indexed documents."""
 
-    import json
+
+@app.command("ask")
+def ask(question: str) ->None:
+    """Answer questions using Hybrid Retrieval + CrossEncoder reranking."""
 
     vector_store = FAISSStore()
     vector_store.load(".knowledge/index/faiss.index")
@@ -305,39 +369,221 @@ def ask(question: str) -> None:
         data = json.load(f)
 
     chunks = data["chunks"]
+    texts = [chunk["text"] for chunk in chunks]
+
+    bm25 = BM25Retriever()
+    bm25.build(texts)
+    expanded_question = expander.expand(question)
+
+    console.print(
+        f"[cyan]Expanded Query:[/cyan] {expanded_question}"
+    )
 
     query_embedding = embedder.embed_query(question)
 
-    scores, indices = vector_store.search(query_embedding, top_k=5)
+    scores, indices = vector_store.search(
+        query_embedding,
+        top_k=20,
+    )
 
-    context = []
+    faiss_results = []
 
-    for idx in indices[0]:
+    for score, idx in zip(scores[0], indices[0]):
+
         if idx == -1:
             continue
 
-        context.append(chunks[idx]["text"])
+        faiss_results.append((idx, float(score)))
+
+
+    bm25_results = bm25.search(
+        expanded_question,
+        top_k=20,
+    )
+
+#hybrid searching
+    hybrid = HybridRetriever()
+
+    results = hybrid.fuse(
+        faiss_results,
+        bm25_results,
+    )
+
+#cross encoder
+    candidate_chunks = []
+
+    for idx, hybrid_score in results:
+
+        chunk = chunks[idx].copy()
+
+        chunk["hybrid_score"] = hybrid_score
+
+        candidate_chunks.append(chunk)
+
+    ranked = reranker.rerank(
+        question,
+        candidate_chunks,
+        top_k=5,
+    )
+
+#building context
+    context = "\n\n".join(
+        chunk["text"]
+        for chunk in ranked
+    )
 
     answer = llm.generate(
         question,
-        "\n\n".join(context),
+        context,
     )
 
     console.print("\n[bold green]Answer[/bold green]\n")
+
     console.print(answer)
 
-    console.print("\n[bold cyan]Sources[/bold cyan]")
+    console.print("\n[bold cyan]Retrieved Sources[/bold cyan]\n")
 
-    seen = set()
+    for chunk in ranked:
 
-    for idx in indices[0]:
+        console.print(
+            f"• {Path(chunk['source_path']).name}"
+        )
+
+        console.print(
+            f"  Cross Score : {chunk['rerank_score']:.4f}"
+        )
+
+        console.print(
+            f"  Hybrid Score: {chunk['hybrid_score']:.4f}\n"
+        )
+@app.command("benchmark")
+def benchmark(question: str) -> None:
+    """Benchmark the complete KnowledgeOS retrieval pipeline."""
+
+    total_start = time.perf_counter()
+
+    vector_store = FAISSStore()
+    vector_store.load(".knowledge/index/faiss.index")
+
+    with open(".knowledge/index/chunks.json") as f:
+        data = json.load(f)
+
+    chunks = data["chunks"]
+    texts = [c["text"] for c in chunks]
+
+    bm25 = BM25Retriever()
+    bm25.build(texts)
+
+    hybrid = HybridRetriever()
+
+#query expansion
+    expanded_query = expander.expand(question)
+
+#embeeding
+    start = time.perf_counter()
+
+    query_embedding = embedder.embed_query(expanded_query)
+
+    embedding_time = (time.perf_counter() - start) * 1000
+
+#faiss
+    start = time.perf_counter()
+
+    scores, indices = vector_store.search(
+        query_embedding,
+        top_k=20,
+    )
+
+    faiss_time = (time.perf_counter() - start) * 1000
+
+    faiss_results = []
+
+    for score, idx in zip(scores[0], indices[0]):
+
         if idx == -1:
             continue
 
-        source = chunks[idx]["source_path"]
+        faiss_results.append((idx, float(score)))
 
-        if source not in seen:
-            seen.add(source)
-            console.print(f"- {source}")
+
+    start = time.perf_counter()
+
+    bm25_results = bm25.search(
+        expanded_query,
+        top_k=20,
+    )
+
+    bm25_time = (time.perf_counter() - start) * 1000
+
+#hybrid fusion
+    start = time.perf_counter()
+
+    fused = hybrid.fuse(
+        faiss_results,
+        bm25_results,
+    )
+
+    hybrid_time = (time.perf_counter() - start) * 1000
+
+    candidate_chunks = []
+
+    for idx, score in fused:
+
+        chunk = chunks[idx].copy()
+        chunk["hybrid_score"] = score
+
+        candidate_chunks.append(chunk)
+
+#cross encodeoing
+    start = time.perf_counter()
+
+    ranked = reranker.rerank(
+        question,
+        candidate_chunks,
+        top_k=5,
+    )
+
+    rerank_time = (time.perf_counter() - start) * 1000
+
+#llm
+    context = "\n\n".join(
+        c["text"]
+        for c in ranked
+    )
+
+    start = time.perf_counter()
+
+    answer = llm.generate(
+        question,
+        context,
+    )
+
+    llm_time = (time.perf_counter() - start) * 1000
+
+    total_time = (time.perf_counter() - total_start) * 1000
+    # report
+    console.print("\n[bold cyan]KnowledgeOS Benchmark[/bold cyan]\n")
+
+    console.print(f"Query              : {question}\n")
+
+    console.print(f"Embedding          : {embedding_time:.2f} ms")
+    console.print(f"FAISS Search       : {faiss_time:.2f} ms")
+    console.print(f"BM25 Search        : {bm25_time:.2f} ms")
+    console.print(f"Hybrid Fusion      : {hybrid_time:.2f} ms")
+    console.print(f"Cross Encoder      : {rerank_time:.2f} ms")
+    console.print(f"LLM Generation     : {llm_time:.2f} ms")
+
+    console.print("-" * 45)
+
+    console.print(f"Total Pipeline     : {total_time:.2f} ms\n")
+
+    console.print(f"Retrieved Chunks   : {len(ranked)}")
+
+    if ranked:
+        console.print(f"Embedding Size     : {len(query_embedding)}")
+
+    console.print("\n[bold green]Generated Answer[/bold green]\n")
+    console.print(answer)
+
 if __name__ == "__main__":
     app()
