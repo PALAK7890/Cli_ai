@@ -14,6 +14,9 @@ from knowledge.embeddings import SentenceTransformerEmbedding
 from knowledge.loaders.router import LoaderRouter
 from knowledge.vectorstores.faiss_store import FAISSStore
 from knowledge.llms.ollama_llm import OllamaLLM
+from knowledge.retrievers import BM25Retriever
+
+            
 
 app = typer.Typer(
     name="knowledge",
@@ -26,6 +29,7 @@ router = LoaderRouter()
 chunker = RecursiveChunker()
 embedder = SentenceTransformerEmbedding()
 llm = OllamaLLM()
+bm25 = BM25Retriever()
 
 @app.callback()
 def callback() -> None:
@@ -102,6 +106,8 @@ def add(path: str) -> None:
             )
 
             texts = [chunk.text for chunk in chunks]
+            
+            bm25.build(texts)
 
             embeddings = embedder.embed_documents(texts)
 
