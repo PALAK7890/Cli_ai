@@ -6,6 +6,8 @@ import json
 from pathlib import Path
 import typer
 from rich.console import Console
+import os
+import yaml
 
 from knowledge.chunkers.recursive import RecursiveChunker
 from knowledge.embeddings import SentenceTransformerEmbedding
@@ -191,6 +193,7 @@ def search(query: str) -> None:
         console.print(f"[yellow]Source:[/yellow] {chunk['source_path']}")
         console.print(chunk["text"])
         console.print("-" * 70)
+
 @app.command("list")
 def list_documents() -> None:
     """List indexed documents."""
@@ -229,7 +232,60 @@ def list_documents() -> None:
     console.print(f"Total Documents : {len(documents)}")
     console.print(f"Total Chunks    : {total_chunks}")
 
-    
+@app.command("stats")
+def stats() -> None:
+    """Show KnowledgeOS statistics."""
+
+    workspace = Path(".knowledge")
+    config_path = workspace / "config.yaml"
+    index_path = workspace / "index" / "faiss.index"
+    chunks_path = workspace / "index" / "chunks.json"
+
+    if not chunks_path.exists():
+        console.print("[red]No index found.[/red]")
+        raise typer.Exit()
+
+    with open(chunks_path, "r") as f:
+        data = json.load(f)
+
+    documents = data["documents"]
+    chunks = data["chunks"]
+
+    with open(config_path, "r") as f:
+        config = yaml.safe_load(f)
+
+    embedding_dim = "Unknown"
+
+    if chunks:
+        vector_store = FAISSStore()
+        vector_store.load(str(index_path))
+
+        if vector_store.index is not None:
+            embedding_dim = vector_store.index.d
+
+    index_size = (
+        f"{os.path.getsize(index_path)/1024:.2f} KB"
+        if index_path.exists()
+        else "0 KB"
+    )
+
+    chunk_size = (
+        f"{os.path.getsize(chunks_path)/1024:.2f} KB"
+        if chunks_path.exists()
+        else "0 KB"
+    )
+
+    console.print("\n[bold cyan]KnowledgeOS Statistics[/bold cyan]\n")
+
+    console.print(f"Workspace        : {workspace.resolve()}")
+    console.print(f"Documents        : {len(documents)}")
+    console.print(f"Chunks           : {len(chunks)}")
+    console.print(f"Embedding Model  : {config['embedding_model']}")
+    console.print(f"Embedding Size   : {embedding_dim}")
+    console.print("Vector Store     : FAISS")
+    console.print(f"Index Size       : {index_size}")
+    console.print(f"Chunk File Size  : {chunk_size}")
+
 @app.command("ask")
 def ask(question: str) -> None:
     """Ask a question about indexed documents."""
