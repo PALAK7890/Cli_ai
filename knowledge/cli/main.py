@@ -18,6 +18,7 @@ from knowledge.llms.ollama_llm import OllamaLLM
 from knowledge.retrievers import BM25Retriever, HybridRetriever
 from knowledge.rerankers import CrossEncoderReranker
 from knowledge.query import QueryExpander
+from knowledge.indexing import DocumentRegistry
 
 app = typer.Typer(
     name="knowledge",
@@ -74,6 +75,9 @@ def add(path: str) -> None:
     """Load, chunk and index documents."""
 
     source = Path(path)
+    registry = DocumentRegistry()
+
+
 
     if not source.exists():
         console.print(f"[red]Path not found:[/red] {path}")
@@ -95,6 +99,12 @@ def add(path: str) -> None:
     console.print(f"[bold green]Found {len(files)} document(s)[/bold green]\n")
 
     for file in files:
+        status = registry.get_status(file)
+        if status == "UNCHANGED":
+                console.print(f"[green]✓[/green] {file.name} (unchanged)")
+                continue
+        
+        console.print(f"[cyan]{status}[/cyan] {file.name}")
 
         try:
 
@@ -116,6 +126,7 @@ def add(path: str) -> None:
 
             all_chunks.extend(chunks)
             all_embeddings.extend(embeddings)
+            registry.add_document(file,len(chunks),)
 
             total_chars = sum(len(doc.text) for doc in loaded_docs)
 
@@ -161,6 +172,7 @@ def add(path: str) -> None:
             }
         )
 
+
     index_data = {
         "documents": document_records,
         "chunks": chunk_records,
@@ -172,6 +184,7 @@ def add(path: str) -> None:
     console.print("[bold green]Index saved successfully.[/bold green]")
     console.print(f"Total Chunks     : {len(all_chunks)}")
     console.print(f"Embedding Size   : {len(all_embeddings[0])}")
+    registry.save()
 
 @app.command("search")
 def search(query: str) -> None:
