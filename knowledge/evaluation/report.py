@@ -7,7 +7,7 @@ from rich.console import Console
 console = Console()
 
 
-def print_report(metrics: dict):
+def print_report(metrics: dict) -> None:
 
     console.print("\n[bold cyan]Benchmark Report[/bold cyan]\n")
 

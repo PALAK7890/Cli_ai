@@ -7,6 +7,9 @@ import hashlib
 import json
 
 
+from typing import Any, Dict, List, Optional, Set, Union
+
+
 class DocumentRegistry:
     """Keeps track of indexed documents."""
 
@@ -16,7 +19,7 @@ class DocumentRegistry:
     ) -> None:
 
         self.registry_path = Path(registry_path)
-        self.documents = {}
+        self.documents: Dict[str, Dict[str, Any]] = {}
 
         self.load()
 
@@ -120,7 +123,7 @@ class DocumentRegistry:
     def get_document(
         self,
         path: Path,
-    ):
+    ) -> Optional[Dict[str, Any]]:
 
         key = self._key(path)
 
@@ -157,8 +160,8 @@ class DocumentRegistry:
 
     def deleted_documents(
         self,
-        current_files,
-    ):
+        current_files: List[Path],
+    ) -> List[str]:
 
         current = {
             self._key(path)
