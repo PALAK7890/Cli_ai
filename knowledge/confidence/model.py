@@ -18,7 +18,7 @@ class ConfidenceModel:
     def predict(
         self,
         features: ConfidenceFeatures,
-    ):
+    ) -> float:
 
         x = np.array([
             features.semantic_score,

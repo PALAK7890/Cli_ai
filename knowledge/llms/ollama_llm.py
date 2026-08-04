@@ -37,4 +37,4 @@ Question:
             ],
         )
 
-        return response["message"]["content"]
+        return str(response["message"]["content"])
