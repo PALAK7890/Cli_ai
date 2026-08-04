@@ -4,10 +4,11 @@ Benchmark retrieval quality.
 
 import time
 
+from typing import Dict
 from knowledge.evaluation.metrics import (
     recall_at_k,
     precision_at_k,
-    mrr,
+    reciprocal_rank,
 )
 
 
@@ -18,7 +19,7 @@ class Benchmark:
         query: str,
         retrieved: list[int],
         relevant: list[int],
-    ):
+    ) -> Dict[str, float]:
 
         start = time.perf_counter()
 
@@ -33,7 +34,7 @@ class Benchmark:
                 relevant,
                 5,
             ),
-            "MRR": mrr(
+            "MRR": reciprocal_rank(
                 retrieved,
                 relevant,
             ),
