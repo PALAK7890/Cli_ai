@@ -2,7 +2,7 @@
 Recursive character text chunker implementation.
 """
 
-from typing import Dict, List
+from typing import Dict, List, Optional
 from knowledge.loaders.base import LoadedDocument
 from knowledge.chunkers.base import BaseChunker, DocumentChunk
 
@@ -10,7 +10,7 @@ from knowledge.chunkers.base import BaseChunker, DocumentChunk
 class RecursiveChunker(BaseChunker):
     """Splits documents recursively using a list of hierarchical separators."""
 
-    def __init__(self, separators: List[str] = None) -> None:
+    def __init__(self, separators: Optional[List[str]] = None) -> None:
         # Default separators: paragraphs, newlines, words, characters
         self.separators = separators or ["\n\n", "\n", " ", ""]
 
