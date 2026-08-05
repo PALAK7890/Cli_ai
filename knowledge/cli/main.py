@@ -19,6 +19,7 @@ from knowledge.retrievers import BM25Retriever, HybridRetriever
 from knowledge.rerankers import CrossEncoderReranker
 from knowledge.query import QueryExpander
 from knowledge.indexing import DocumentRegistry
+from knowledge.evaluation.evaluator import RetrievalEvaluator
 
 app = typer.Typer(
     name="knowledge",
@@ -598,7 +599,40 @@ def benchmark(question: str) -> None:
         console.print(f"Embedding Size     : {len(query_embedding)}")
 
     console.print("\n[bold green]Generated Answer[/bold green]\n")
+
     console.print(answer)
+    
+@app.command("evaluate")
+def evaluate(dataset: str) -> None:
+    """Evaluate retrieval quality on a benchmark dataset."""
+
+    evaluator = RetrievalEvaluator()
+
+    report = evaluator.evaluate(dataset)
+
+    console.print("\n[bold cyan]KnowledgeOS Evaluation[/bold cyan]\n")
+
+    console.print(f"Queries            : {report['queries']}")
+    console.print(f"Accuracy@1         : {report['accuracy@1']:.2%}")
+    console.print(f"Accuracy@3         : {report['accuracy@3']:.2%}")
+    console.print(f"Precision@3        : {report['precision@3']:.3f}")
+    console.print(f"Recall@3           : {report['recall@3']:.3f}")
+    console.print(f"Mean Reciprocal Rank : {report['mrr']:.3f}")
+    console.print(f"Average Latency    : {report['avg_latency_ms']:.2f} ms")
+
+    console.print("\n[bold green]Per Query Results[/bold green]\n")
+
+    for result in report["results"]:
+
+        console.print(f"[cyan]Question:[/cyan] {result['question']}")
+        console.print(f"[yellow]Expected:[/yellow] {result['expected']}")
+        console.print(
+            f"[green]Retrieved:[/green] {', '.join(result['retrieved'])}"
+        )
+        console.print(
+            f"[magenta]Latency:[/magenta] {result['latency_ms']:.2f} ms"
+        )
+        console.print("-" * 70)
 
 if __name__ == "__main__":
     app()
