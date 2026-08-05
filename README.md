@@ -1,159 +1,201 @@
 # RAGForge
 
-A modular Retrieval-Augmented Generation (RAG) framework that indexes local documents, performs hybrid retrieval using dense and sparse search, reranks retrieved passages with a Cross-Encoder, and answers questions using a local LLM through Ollama.
+<p align="center">
 
-RAGForge is designed as a modular research-oriented codebase where each stage of the retrieval pipeline is independently replaceable and benchmarkable.
+**A modular Retrieval-Augmented Generation (RAG) framework for document indexing, hybrid retrieval, reranking, evaluation, and local LLM inference.**
+
+</p>
+
+<p align="center">
+
+![Python](https://img.shields.io/badge/Python-3.11+-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![FAISS](https://img.shields.io/badge/Vector%20Store-FAISS-orange)
+![SentenceTransformers](https://img.shields.io/badge/Embeddings-SentenceTransformers-red)
+![BM25](https://img.shields.io/badge/Retrieval-BM25-yellow)
+![Ollama](https://img.shields.io/badge/LLM-Ollama-lightgrey)
+
+</p>
 
 ---
 
-## Features
+## Overview
+
+RAGForge is a modular Retrieval-Augmented Generation (RAG) framework that enables indexing, searching, and querying local document collections using a production-inspired retrieval pipeline.
+
+The framework combines dense vector retrieval, sparse lexical search, hybrid rank fusion, Cross-Encoder reranking, and local LLM inference into a single extensible architecture.
+
+Unlike many educational RAG implementations that focus only on question answering, RAGForge emphasizes retrieval quality, benchmarking, evaluation, modularity, and experimentation. Each stage of the retrieval pipeline is implemented as an independent component, making it straightforward to replace embedding models, retrieval algorithms, rerankers, or language models without affecting the rest of the system.
+
+---
+
+# Why RAGForge?
+
+Modern Retrieval-Augmented Generation systems are more than vector search. High-quality retrieval requires multiple ranking stages, evaluation, benchmarking, and modular system design.
+
+RAGForge demonstrates an end-to-end retrieval pipeline including:
 
 - Multi-format document ingestion
-  - PDF
-  - TXT
-  - Markdown
-  - HTML
-  - DOCX
-
-- Recursive document chunking with configurable overlap
-
+- Recursive document chunking
 - Dense semantic retrieval
-  - SentenceTransformers
-  - FAISS vector indexing
-
 - Sparse lexical retrieval
-  - BM25 ranking
-
-- Hybrid retrieval
-  - Reciprocal Rank Fusion (RRF)
-
-- Query expansion
-
+- Hybrid rank fusion
 - Cross-Encoder reranking
+- Local LLM inference with Ollama
+- Retrieval benchmarking
+- Retrieval evaluation
+- Incremental document indexing
 
-- Local LLM inference using Ollama
-
-- End-to-end benchmarking
-
-- Modular architecture for experimentation
-
----
-
-## About
-
-RAGForge is an open-source, modular Retrieval-Augmented Generation (RAG) framework built to explore, benchmark, and improve document retrieval pipelines. It integrates semantic vector search (FAISS + SentenceTransformers), lexical retrieval (BM25), hybrid ranking, query expansion, Cross-Encoder reranking, and local LLM inference into a single extensible architecture.
-
-Rather than focusing solely on question answering, RAGForge emphasizes the engineering behind modern retrieval systems. Every stage of the pipeline is implemented as an independent module, enabling experimentation with retrieval strategies, performance benchmarking, and component replacement without modifying the rest of the system.
-
-The framework is intended for developers, students, and researchers who want to understand how production-inspired RAG pipelines are designed and evaluated.
+The project is designed for developers, students, and researchers interested in understanding how production-inspired retrieval systems are engineered and evaluated.
 
 ---
 
-## Architecture
+# Key Features
+
+| Component | Description |
+|-----------|-------------|
+| Multi-format Loaders | PDF, TXT, Markdown, HTML and DOCX support |
+| Recursive Chunking | Configurable chunk size and overlap |
+| Dense Retrieval | SentenceTransformers embeddings with FAISS |
+| Sparse Retrieval | BM25 lexical ranking |
+| Hybrid Retrieval | Reciprocal Rank Fusion (RRF) |
+| Query Expansion | Improves retrieval recall |
+| Cross-Encoder Reranking | Second-stage neural reranking |
+| Local LLM | Ollama integration |
+| Incremental Indexing | Detects new, modified and unchanged documents |
+| Evaluation Framework | Accuracy@K, Precision@K, Recall@K, MRR |
+| Benchmarking | End-to-end latency analysis |
+| Modular Design | Replace individual pipeline components independently |
+
+---
+
+# System Architecture
+
+The complete architecture diagrams are available in:
 
 ```
-                 Documents
-                     │
-                     ▼
-            Document Loaders
-                     │
-                     ▼
-          Recursive Chunking
-                     │
-                     ▼
-      SentenceTransformer Embeddings
-                     │
-                     ▼
-                FAISS Index
-                     │
-                     │
-User Query ──────────┘
-     │
-     ▼
+
+docs/architecture.md
+
+```
+
+The repository contains dedicated diagrams for:
+
+- Indexing pipeline
+- Retrieval pipeline
+- End-to-end RAG workflow
+
+These diagrams illustrate how documents move through indexing, retrieval, reranking, and answer generation.
+
+---
+
+# Project Goals
+
+RAGForge is designed around five engineering principles.
+
+- Modular architecture
+- Local-first deployment
+- Reproducible experimentation
+- Retrieval quality evaluation
+- Component-level benchmarking
+
+Rather than treating RAG as a single black-box model, the framework exposes every stage of the retrieval pipeline for inspection, replacement, and experimentation.
+
+---
+
+# Core Pipeline
+
+```
+Documents
+      │
+      ▼
+Document Loaders
+      │
+      ▼
+Chunking
+      │
+      ▼
+Embeddings
+      │
+      ▼
+FAISS Index
+
+User Query
+      │
+      ▼
 Query Expansion
-     │
-     ▼
-Dense Retrieval (FAISS)
-     │
-Sparse Retrieval (BM25)
-     │
-     ▼
-Hybrid Fusion (RRF)
-     │
-     ▼
-Cross-Encoder Reranking
-     │
-     ▼
+      │
+      ▼
+Semantic Retrieval
+      │
+Sparse Retrieval
+      │
+      ▼
+Hybrid Fusion
+      │
+      ▼
+Cross Encoder
+      │
+      ▼
 Context Construction
-     │
-     ▼
-Ollama LLM
-     │
-     ▼
-Answer
+      │
+      ▼
+Ollama
+      │
+      ▼
+Generated Answer
 ```
 
 ---
 
-## Repository Structure
+# Installation
 
-```
-knowledge/
-│
-├── chunkers/
-├── cli/
-├── confidence/
-├── config/
-├── embeddings/
-├── evaluation/
-├── llms/
-├── loaders/
-├── query/
-├── rerankers/
-├── retrievers/
-├── vectorstores/
-└── tests/
-```
+## Prerequisites
 
----
+- Python 3.11 or later
+- Ollama
+- Git
 
-## Installation
-
-Clone the repository
+Clone the repository.
 
 ```bash
-git clone https://github.com/yourusername/KnowledgeOS.git
-
-cd KnowledgeOS
+git clone https://github.com/PALAK7890/RAGForge.git
+cd RAGForge
 ```
 
-Create a virtual environment
+Create and activate a virtual environment.
 
 ```bash
 python -m venv venv
 
+# macOS / Linux
 source venv/bin/activate
+
+# Windows
+venv\Scripts\activate
 ```
 
-Install dependencies
+Install the project.
 
 ```bash
 pip install -e .
 ```
 
-Install Ollama
+---
 
-```bash
-brew install ollama
-```
+# Installing Ollama
 
-Pull a model
+Install Ollama from the official website.
+
+https://ollama.com
+
+Pull a supported model.
 
 ```bash
 ollama pull llama3.2
 ```
 
-Start Ollama
+Start the Ollama server.
 
 ```bash
 ollama serve
@@ -161,113 +203,410 @@ ollama serve
 
 ---
 
-## CLI Usage
+# Repository Structure
 
-Initialize workspace
-
-```bash
-knowledge init
 ```
-
-Index documents
-
-```bash
-knowledge add docs/
-```
-
-Search documents
-
-```bash
-knowledge search "hybrid retrieval"
-```
-
-Ask questions
-
-```bash
-knowledge ask "What is KnowledgeOS?"
-```
-
-List indexed documents
-
-```bash
-knowledge list
-```
-
-Show workspace statistics
-
-```bash
-knowledge stats
-```
-
-Benchmark the pipeline
-
-```bash
-knowledge benchmark "What is KnowledgeOS?"
+RAGForge/
+│
+├── knowledge/
+│   ├── chunkers/
+│   ├── cli/
+│   ├── config/
+│   ├── embeddings/
+│   ├── evaluation/
+│   ├── indexing/
+│   ├── llms/
+│   ├── loaders/
+│   ├── rerankers/
+│   ├── retrievers/
+│   └── vectorstores/
+│
+├── docs/
+│
+├── tests/
+│
+├── README.md
+├── pyproject.toml
+└── requirements.txt
 ```
 
 ---
 
-## Retrieval Pipeline
+# CLI Commands
 
-KnowledgeOS follows a multi-stage retrieval pipeline.
+Initialize a new workspace.
 
-1. Query Expansion
-2. Dense Retrieval using FAISS
-3. Sparse Retrieval using BM25
-4. Reciprocal Rank Fusion
-5. Cross-Encoder Reranking
-6. Local LLM Generation
+```bash
+python -m knowledge.cli.main init
+```
 
-This design improves retrieval quality while maintaining low retrieval latency and modularity.
+Index documents.
+
+```bash
+python -m knowledge.cli.main add docs/
+```
+
+Search indexed documents.
+
+```bash
+python -m knowledge.cli.main search "hybrid retrieval"
+```
+
+Ask questions using local RAG.
+
+```bash
+python -m knowledge.cli.main ask "What is Retrieval-Augmented Generation?"
+```
+
+List indexed documents.
+
+```bash
+python -m knowledge.cli.main list
+```
+
+Show workspace statistics.
+
+```bash
+python -m knowledge.cli.main stats
+```
+
+Benchmark the retrieval pipeline.
+
+```bash
+python -m knowledge.cli.main benchmark "What is RAGForge?"
+```
+
+Evaluate retrieval quality.
+
+```bash
+python -m knowledge.cli.main evaluate knowledge/evaluation/questions.json
+```
 
 ---
 
-## Benchmark Example
+# Example Workflow
+
+### 1. Index documents
+
+```bash
+python -m knowledge.cli.main add docs/
+```
+
+Output
 
 ```
+Found 12 document(s)
+
+✓ handbook.pdf
+✓ report.docx
+✓ notes.txt
+
+Index saved successfully.
+
+Total Chunks : 148
+Embedding Dimension : 384
+```
+
+---
+
+### 2. Search
+
+```bash
+python -m knowledge.cli.main search "hybrid retrieval"
+```
+
+Output
+
+```
+Expanded Query:
+hybrid retrieval semantic search dense retrieval BM25
+
+1. handbook.pdf
+
+Cross Score : 8.52
+
+Hybrid Score : 0.93
+
+Hybrid retrieval combines dense vector search with sparse lexical retrieval.
+
+------------------------------------------------------------
+```
+
+---
+
+### 3. Ask Questions
+
+```bash
+python -m knowledge.cli.main ask "Explain hybrid retrieval."
+```
+
+Output
+
+```
+Answer
+
+Hybrid retrieval combines semantic vector search and lexical keyword
+search to improve retrieval accuracy. The retrieved passages are
+reranked using a Cross-Encoder before being provided to the language
+model.
+
+Sources
+
+- handbook.pdf
+- retrieval_notes.md
+```
+
+---
+
+# Retrieval Pipeline
+
+RAGForge follows a multi-stage retrieval architecture.
+
+```
+User Query
+      │
+      ▼
+Query Expansion
+      │
+      ▼
+Sentence Embedding
+      │
+      ▼
+FAISS Retrieval
+      │
+BM25 Retrieval
+      │
+      ▼
+Hybrid Rank Fusion
+      │
+      ▼
+Cross-Encoder Reranking
+      │
+      ▼
+Context Construction
+      │
+      ▼
+Local LLM
+      │
+      ▼
+Answer Generation
+```
+
+Each component can be replaced independently, making experimentation with retrieval techniques straightforward.
+
+---
+
+# Retrieval Components
+
+| Stage | Implementation |
+|--------|----------------|
+| Document Loading | PDF, DOCX, TXT, HTML, Markdown |
+| Chunking | Recursive Character Splitter |
+| Embeddings | SentenceTransformers |
+| Vector Store | FAISS |
+| Sparse Retrieval | BM25 |
+| Fusion | Reciprocal Rank Fusion (RRF) |
+| Reranking | CrossEncoder |
+| LLM | Ollama |
+| Evaluation | Accuracy@K, Precision@K, Recall@K, MRR |
+| Benchmarking | Latency Profiling |
+
+---
+
+# Benchmarking
+
+RAGForge includes a built-in benchmarking framework that measures the latency of each stage in the retrieval pipeline independently.
+
+Run the benchmark using:
+
+```bash
+python -m knowledge.cli.main benchmark "What is RAGForge?"
+```
+
+Example output:
+
+```text
 KnowledgeOS Benchmark
 
-Embedding          : 541 ms
-FAISS Search       : 60 ms
-BM25 Search        : 1 ms
-Hybrid Fusion      : 0.06 ms
-Cross Encoder      : 491 ms
-LLM Generation     : 8756 ms
+Query              : What is RAGForge?
 
-Total Pipeline     : 9855 ms
+Embedding          : 541.23 ms
+FAISS Search       : 59.54 ms
+BM25 Search        : 1.32 ms
+Hybrid Fusion      : 0.06 ms
+Cross Encoder      : 491.40 ms
+LLM Generation     : 8755.71 ms
+
+---------------------------------------------
+
+Total Pipeline     : 9855.17 ms
+
+Retrieved Chunks   : 2
+Embedding Size     : 384
 ```
 
-Pipeline latency is primarily dominated by local LLM inference. Retrieval stages remain lightweight and independently measurable.
+The benchmark is intended to identify latency bottlenecks and compare retrieval strategies independently from language model inference.
 
 ---
 
-## Technology Stack
+# Evaluation Framework
 
-| Component | Technology |
+RAGForge includes a modular retrieval evaluation framework for measuring retrieval quality.
+
+Supported metrics include:
+
+- Accuracy@1
+- Accuracy@3
+- Precision@K
+- Recall@K
+- Mean Reciprocal Rank (MRR)
+- Average Retrieval Latency
+
+Run the evaluation.
+
+```bash
+python -m knowledge.cli.main evaluate evaluation/questions.json
+```
+
+Example output:
+
+```text
+KnowledgeOS Evaluation
+
+Queries            : 50
+
+Accuracy@1         : 92.00%
+Accuracy@3         : 98.00%
+
+Precision@3        : 0.91
+Recall@3           : 0.98
+
+Mean Reciprocal Rank : 0.95
+
+Average Latency    : 81.34 ms
+```
+
+The evaluation framework is designed to benchmark retrieval performance independently of the language model.
+
+---
+
+# Technology Stack
+
+| Category | Technology |
 |------------|------------|
 | Language | Python |
 | CLI | Typer |
-| Dense Retrieval | SentenceTransformers |
-| Vector Database | FAISS |
-| Sparse Retrieval | BM25 |
-| Reranking | CrossEncoder |
-| LLM | Ollama |
-| Configuration | YAML |
 | Console | Rich |
+| Embeddings | SentenceTransformers |
+| Vector Search | FAISS |
+| Sparse Retrieval | BM25 |
+| Rank Fusion | Reciprocal Rank Fusion |
+| Reranker | CrossEncoder |
+| Local LLM | Ollama |
+| Configuration | YAML |
+| Evaluation | Custom Metrics |
 
 ---
 
-## Future Work
+# Design Principles
 
-- Streaming generation
-- Multi-vector retrieval
-- Metadata filtering
+The framework is built around several core engineering principles.
+
+- Modular architecture
+- Production-inspired retrieval pipeline
+- Local-first inference
+- Reproducible experimentation
+- Independent benchmarking
+- Retrieval quality evaluation
+- Easily replaceable components
+
+Each subsystem is isolated behind a simple interface, allowing retrieval algorithms, embedding models, rerankers, and language models to be swapped without affecting the rest of the pipeline.
+
+---
+
+# Roadmap
+
+## Completed
+
+- Multi-format document loaders
+- Recursive chunking
+- SentenceTransformer embeddings
+- FAISS vector indexing
+- BM25 lexical retrieval
+- Hybrid retrieval
+- Query expansion
+- Cross-Encoder reranking
+- Ollama integration
 - Incremental indexing
-- Retrieval evaluation datasets
-- Citation-aware answer generation
+- Benchmarking framework
+- Retrieval evaluation
+
+## Planned
+
+- Metadata-aware filtering
+- Streaming responses
+- REST API
+- Docker support
+- Configuration profiles
+- Additional embedding backends
+- Multi-vector retrieval
+- Automated benchmark reports
 
 ---
 
-## License
+# Contributing
 
-MIT License
+Contributions are welcome.
+
+If you would like to improve RAGForge, please:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Commit your changes.
+4. Open a Pull Request.
+
+For significant changes, please open an issue first to discuss the proposed modification.
+
+---
+
+# License
+
+This project is licensed under the MIT License.
+
+---
+
+# Acknowledgements
+
+RAGForge builds upon several excellent open-source projects.
+
+- FAISS
+- SentenceTransformers
+- rank-bm25
+- Ollama
+- Typer
+- Rich
+
+Their contributions make modern Retrieval-Augmented Generation systems accessible to the community.
+
+---
+
+# Author
+
+**Palak**
+
+B.Tech Data Science Student
+
+Interested in:
+
+- Machine Learning
+- Retrieval-Augmented Generation
+- Information Retrieval
+- Large Language Models
+- AI Systems Engineering
+
+GitHub:
+https://github.com/PALAK7890
+
+---
+
+If you found this project useful, consider giving the repository a ⭐.
